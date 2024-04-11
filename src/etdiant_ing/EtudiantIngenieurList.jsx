@@ -2,57 +2,78 @@ import * as React from "react";
 import Box from "@mui/material/Box";
 import { DataGrid } from "@mui/x-data-grid";
 import axios from "axios";
-import { Button, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
-import ProfessorCreate from "./ProfessorCreate";
-import ProfessorUpdate from "./ProfessorUpdate";
+// import { Navigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import {
+  Button,
+  Stack,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from "@mui/material";
+// import ProfessorCreate from "./ProfessorCreate";
+// import ProfessorUpdate from "./ProfessorUpdate";
+import { useUserData } from "../contexts/userDataContext";
+import EtudiantForm from "./EtudiantForm";
+import { fetchEtudiantIngenieurs } from "../fetchElements/fetchEtudiant_ing";
+import { fetchStage, fetchStagesByStudent } from "../fetchElements/fetchStage";
 
-export default function ProfessorList() {
-  const [rows, setRows] = React.useState([]);
-  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = React.useState(false);
+export default function EtudiantIngenieurList() {
+  const [create, setCreate] = React.useState(false);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] =
+    React.useState(false);
   const [deleteTargetId, setDeleteTargetId] = React.useState(null);
   const [updating, setUpdating] = React.useState(false);
-  const [updatingProfessor, setUpdatingProfessor] = React.useState(null);
-
-  const fetchProfessors = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:8080/professors", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setRows(response.data);
-      console.log(response.data);
-    } catch (error) {
-      console.error("Error fetching Professors:", error);
-    }
-  };
+  const [updatingEtudiant, setUpdatingEtudiant] = React.useState(null);
+  const {
+    etudiantIngenieurs,
+    etudiantIngenieur,
+    updateEtudiantIngenieurs,
+    updateEtudiantIngenieur,
+    path,
+    updateStages,
+  } = useUserData();
+  const navigate = useNavigate();
 
   const handleEdit = async (Professor) => {
-    setUpdatingProfessor(Professor);
-    setUpdating(true);
+    setCreate(false);
+    setUpdatingEtudiant(Professor);
+    setUpdating(!updating);
+  };
+
+  const fCreate = async () => {
+    setUpdating(false);
+    setCreate(!create);
+  };
+
+  const handleStage = async (user) => {
+    updateEtudiantIngenieur(user);
+    await fetchStagesByStudent(path, updateStages, user.id);
+    navigate("/dashboard/stages");
   };
 
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem("token");
 
-      await axios.delete(`http://localhost:8080/professors/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      // If deletion is successful, fetch the updated list of Professors
-      fetchProfessors();
-      setDeleteConfirmationOpen(false); // Close the confirmation dialog
+      await axios.delete(
+        `http://localhost:8080/ingStudents/admin/delete/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      handleEtudiantIngCreated();
+      setDeleteConfirmationOpen(false);
     } catch (error) {
       console.error("Error deleting Professor:", error);
     }
   };
 
-  const handleProfessorCreated = () => {
-    fetchProfessors();
+  const handleEtudiantIngCreated = () => {
+    fetchEtudiantIngenieurs(path, updateEtudiantIngenieurs);
   };
-
-  React.useEffect(() => {
-    fetchProfessors();
-  }, []); // Fetch Professors when component mounts
 
   const handleDeleteConfirmationOpen = (id) => {
     setDeleteTargetId(id);
@@ -68,42 +89,42 @@ export default function ProfessorList() {
     {
       field: "firstName",
       headerName: "First Name",
-      width: 150,
+      width: 100,
       editable: true,
     },
     {
       field: "lastName",
       headerName: "Last Name",
-      width: 150,
+      width: 100,
       editable: true,
     },
     {
       field: "username",
       headerName: "Username",
-      width: 150,
+      width: 100,
       editable: true,
     },
     {
       field: "email",
       headerName: "Email",
-      width: 200,
+      width: 150,
       editable: true,
     },
     {
       field: "telephone",
       headerName: "Telephone",
-      width: 150,
+      width: 100,
       editable: true,
     },
     {
       field: "dateNaissance",
       headerName: "Birthday",
-      width: 150,
+      width: 100,
       editable: true,
     },
     {
       headerName: "Actions",
-      width: 200,
+      width: 300,
       renderCell: (params) => {
         return (
           <div key={params.row.id}>
@@ -119,7 +140,7 @@ export default function ProfessorList() {
                 </Button>
               </Box>
 
-              <Box>
+              <Box sx={{ marginX: 1 }}>
                 <Button
                   variant="contained"
                   color="error"
@@ -127,6 +148,16 @@ export default function ProfessorList() {
                   onClick={() => handleDeleteConfirmationOpen(params.row.id)}
                 >
                   Delete
+                </Button>
+              </Box>
+              <Box sx={{ marginX: 1 }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  onClick={() => handleStage(params.row)}
+                >
+                  stages
                 </Button>
               </Box>
             </Stack>
@@ -137,13 +168,16 @@ export default function ProfessorList() {
   ];
 
   return (
-    <div style={{marginTop:"50px"}}>
-      {!updating && <ProfessorCreate onProfessorCreated={handleProfessorCreated} />}
-      {updating && <ProfessorUpdate onProfessorCreated={handleProfessorCreated} Professor={updatingProfessor} setUpdating={setUpdating}/>}
+    <div>
       <Box sx={{ padding: 3 }}>
-        <Box sx={{ height: 400, width: "100%" }}>
+        <Box sx={{ width: "10%", padding: "8px" }}>
+          <Button onClick={() => fCreate()} variant="contained" color="primary">
+            create
+          </Button>
+        </Box>
+        <Box sx={{ height: 600, width: "100%" }}>
           <DataGrid
-            rows={rows}
+            rows={etudiantIngenieurs}
             columns={columns}
             pageSize={5}
             checkboxSelection
@@ -168,11 +202,19 @@ export default function ProfessorList() {
           <Button onClick={handleDeleteConfirmationClose} color="primary">
             Cancel
           </Button>
-          <Button onClick={() => handleDelete(deleteTargetId)} color="error" autoFocus>
+          <Button
+            onClick={() => handleDelete(deleteTargetId)}
+            color="error"
+            autoFocus
+          >
             Delete
           </Button>
         </DialogActions>
       </Dialog>
+      {create && <EtudiantForm open={create} />}
+      {updating && (
+        <EtudiantForm open={updating} userToUpdate={updatingEtudiant} />
+      )}
     </div>
   );
 }

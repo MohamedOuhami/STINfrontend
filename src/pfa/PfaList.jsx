@@ -2,57 +2,64 @@ import * as React from "react";
 import Box from "@mui/material/Box";
 import { DataGrid } from "@mui/x-data-grid";
 import axios from "axios";
-import { Button, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
-import ProfessorCreate from "./ProfessorCreate";
-import ProfessorUpdate from "./ProfessorUpdate";
+import PfaForm from './PfaForm';
+import {
+  Button,
+  Stack,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from "@mui/material";
+import { useUserData } from "../contexts/userDataContext";
+import { fetchPFAs } from "../fetchElements/fetchPFA";
 
-export default function ProfessorList() {
-  const [rows, setRows] = React.useState([]);
-  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = React.useState(false);
+export default function PFAList() {
+  const [create, setCreate] = React.useState(false);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] =
+    React.useState(false);
   const [deleteTargetId, setDeleteTargetId] = React.useState(null);
   const [updating, setUpdating] = React.useState(false);
-  const [updatingProfessor, setUpdatingProfessor] = React.useState(null);
+  const [updatePFA, setupdatePFA] = React.useState(null);
+  const {
+    PFAs,
+    updatePFAs,
+    groupeProjet,
+    path,
+  } = useUserData();
 
-  const fetchProfessors = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:8080/professors", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setRows(response.data);
-      console.log(response.data);
-    } catch (error) {
-      console.error("Error fetching Professors:", error);
-    }
+  const handleEdit = async (pfa) => {
+    setCreate(false);
+    setupdatePFA(pfa);
+    setUpdating(!updating);
   };
 
-  const handleEdit = async (Professor) => {
-    setUpdatingProfessor(Professor);
-    setUpdating(true);
+  const fCreate = async () => {
+    setUpdating(false);
+    setCreate(!create);
   };
 
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem("token");
 
-      await axios.delete(`http://localhost:8080/professors/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      // If deletion is successful, fetch the updated list of Professors
-      fetchProfessors();
-      setDeleteConfirmationOpen(false); // Close the confirmation dialog
+      await axios.delete(
+        `http://localhost:8080/pfas/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      handlepfaCreated();
+      setDeleteConfirmationOpen(false);
     } catch (error) {
-      console.error("Error deleting Professor:", error);
+      console.error("Error deleting pfa:", error);
     }
   };
 
-  const handleProfessorCreated = () => {
-    fetchProfessors();
+  const handlepfaCreated = () => {
+    fetchPFAs(path, updatePFAs);
   };
-
-  React.useEffect(() => {
-    fetchProfessors();
-  }, []); // Fetch Professors when component mounts
 
   const handleDeleteConfirmationOpen = (id) => {
     setDeleteTargetId(id);
@@ -66,41 +73,30 @@ export default function ProfessorList() {
 
   const columns = [
     {
-      field: "firstName",
-      headerName: "First Name",
+      field: "titre",
+      headerName: "Libelle",
       width: 150,
       editable: true,
     },
     {
-      field: "lastName",
-      headerName: "Last Name",
+      field: "description",
+      headerName: "Description",
+      width: 250,
+      editable: true,
+    },
+    {
+      field: "start_date",
+      headerName: "Début",
       width: 150,
       editable: true,
     },
     {
-      field: "username",
-      headerName: "Username",
+      field: "end_date",
+      headerName: "Fin",
       width: 150,
       editable: true,
-    },
-    {
-      field: "email",
-      headerName: "Email",
-      width: 200,
-      editable: true,
-    },
-    {
-      field: "telephone",
-      headerName: "Telephone",
-      width: 150,
-      editable: true,
-    },
-    {
-      field: "dateNaissance",
-      headerName: "Birthday",
-      width: 150,
-      editable: true,
-    },
+    }
+    ,
     {
       headerName: "Actions",
       width: 200,
@@ -137,13 +133,16 @@ export default function ProfessorList() {
   ];
 
   return (
-    <div style={{marginTop:"50px"}}>
-      {!updating && <ProfessorCreate onProfessorCreated={handleProfessorCreated} />}
-      {updating && <ProfessorUpdate onProfessorCreated={handleProfessorCreated} Professor={updatingProfessor} setUpdating={setUpdating}/>}
+    <div>
       <Box sx={{ padding: 3 }}>
+        <Box sx={{ width: "10%", padding: "8px" }}>
+          <Button onClick={() => fCreate()} variant="contained" color="primary">
+            create
+          </Button>
+        </Box>
         <Box sx={{ height: 400, width: "100%" }}>
           <DataGrid
-            rows={rows}
+            rows={PFAs}
             columns={columns}
             pageSize={5}
             checkboxSelection
@@ -158,21 +157,29 @@ export default function ProfessorList() {
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
       >
-        <DialogTitle id="delete-dialog-title">{"Delete Professor"}</DialogTitle>
+        <DialogTitle id="delete-dialog-title">{"Delete pfa"}</DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            Are you sure you want to delete this Professor?
+            Are you sure you want to delete this pfa?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleDeleteConfirmationClose} color="primary">
             Cancel
           </Button>
-          <Button onClick={() => handleDelete(deleteTargetId)} color="error" autoFocus>
+          <Button
+            onClick={() => handleDelete(deleteTargetId)}
+            color="error"
+            autoFocus
+          >
             Delete
           </Button>
         </DialogActions>
       </Dialog>
+      {create && <PfaForm open={create} />}
+      {updating && (
+        <PfaForm open={updating} PFAToUpdate={updatePFA} />
+      )}
     </div>
   );
 }

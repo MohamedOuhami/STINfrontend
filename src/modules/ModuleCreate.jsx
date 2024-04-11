@@ -26,7 +26,7 @@ export default function ModuleCreate({onModuleCreated}) {
 
     try {
       const result = await instance.post("http://localhost:8080/modules", body);
-      console.log(result);
+      console.log(result.status);
       setSuccess(true); // Set success state to true after successful submission
       onModuleCreated();
       // Automatically hide the alert after 5 seconds (5000 milliseconds)
